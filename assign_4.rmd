@@ -1,0 +1,150 @@
+---
+title: "HW 4"
+author: "Tanush"
+email : "ts1333@scarletmail.rutgers.edu"
+date: "10/06/2024"
+output: html_document
+---
+
+```{r}
+# Set a CRAN mirror
+options(repos = c(CRAN = "https://cran.r-project.org"))
+
+install.packages("readxl")
+install.packages("xts")
+library(readxl)
+library(dplyr)
+library(fpp)
+library(fpp2)
+library(TTR)
+library(xts)
+
+# Importing the file
+sales_data <- read_excel("C:\\Users\\tanus\\Downloads\\BF assign 4\\WalmartSalesData.xlsx")
+
+# Inspect the structure of the dataset
+str(sales_data)
+
+# Check unique values in 'gross income' to identify non-numeric entries
+unique(sales_data$gross_income)
+
+# Remove non-numeric characters (e.g., dollar signs, commas)
+sales_data$gross_income <- gsub("[^0-9.]", "", sales_data$gross_income)
+
+# Verify the cleaning
+unique(sales_data$gross_income)
+
+# Convert 'gross income' to numeric
+sales_data$gross_income <- as.numeric(sales_data$gross_income)
+
+# Check for NA values introduced by non-numeric elements
+sum(is.na(sales_data$gross_income))
+
+# Remove rows with NA values in 'gross income'
+sales_data <- sales_data[!is.na(sales_data$gross_income), ]
+
+# Verify the conversion
+summary(sales_data$gross_income)
+
+install.packages("forecast")
+library(forecast)
+
+# sort data by date in ascending order
+sales_data$Date <- as.Date(sales_data$Date)
+sales_data <- sales_data %>% arrange(Date)
+print(sales_data)
+
+# Convert 'gross_income' to a time series object
+sales_data <- ts(sales_data$gross_income, start=c(2019, 1), end=c(2022, 1), frequency=12)
+print(sales_data)
+
+plot(sales_data, main="Sales Data Time Series", ylab="Gross Income", xlab="Time")
+
+acf(sales_data)
+
+# 5 months forecast
+mean_forecast <- meanf(sales_data, h = 5)
+print(mean_forecast)
+
+# Plot the forecasted values
+plot(mean_forecast)
+
+# Naive forecast
+naive_forecast <- naive(sales_data,5)
+
+print(naive_forecast)
+plot(naive_forecast)
+
+# Random Walk
+rwf_forecast <- rwf(sales_data,5)
+rwf_forecast <- rwf(sales_data,5, drift=TRUE)
+
+print(rwf_forecast)
+plot(rwf_forecast)
+
+# Seasonal Naive
+snaive_forecast <- snaive(sales_data,5)
+print(snaive_forecast)
+plot(snaive_forecast)
+
+# Plot combined graph
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+
+# what other attributes are there?
+attributes(naive_forecast)
+
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+lines(naive_forecast$mean,col="red")
+
+# now do a drift with RWF
+rwf_forecast <- rwf(sales_data,5, drift=TRUE)
+lines(rwf_forecast$mean,col="green")
+
+# moving averages
+MA5_forecast <- ma(sales_data,order=5)
+lines(MA5_forecast,col="Pink")
+print(MA5_forecast)
+plot(MA5_forecast)
+
+MA9_forecast <- ma(sales_data,order=9)
+lines(MA9_forecast,col="Blue")
+print(MA9_forecast)
+plot(MA9_forecast)
+
+# ETS forecast
+es_forecast <- ets(sales_data)
+print(es_forecast)
+plot(es_forecast)
+
+# Holt forecast
+holt_forecast <- holt(sales_data)
+print(holt_forecast)
+plot(holt_forecast)
+
+# Holt Winters
+winters_forecast <- HoltWinters(sales_data,beta=FALSE,gamma=FALSE)
+winters_forecast  <- forecast(winters_forecast)
+print(winters_forecast)
+plot(winters_forecast)
+
+# Plot the time series and different model forecasts in one chart
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+lines(MA5_forecast,col="orange")
+lines(MA9_forecast,col="blue")
+lines(holt_forecast$mean,col="yellow")
+lines(winters_forecast$mean,col="brown")
+lines(es_forecast$mean,col="purple")
+
+# Accuracy
+accuracy(naive_forecast)
+accuracy(rwf_forecast)
+accuracy(mean_forecast)
+accuracy(snaive_forecast)
+accuracy(es_forecast)
+accuracy(holt_forecast)
+accuracy(winters_forecast)
